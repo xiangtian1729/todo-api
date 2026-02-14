@@ -3,13 +3,23 @@ __pycache__/
 *.pyc
 *.pyo
 *.pyd
+*.egg-info/
 
 # Virtual environment
 .venv/
 venv/
 
+# Environment variables (sensitive!)
+.env
+
+# Database
+*.db
+
 # VS Code
 .vscode/
+
+# IDE
+.idea/
 
 # OS
 .DS_Store
