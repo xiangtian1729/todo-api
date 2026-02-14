@@ -1,0 +1,11 @@
+# Docker 构建时忽略的文件（加速构建、减小镜像体积）
+.venv/
+.git/
+.gitignore
+__pycache__/
+*.pyc
+*.db
+.env
+tests/
+docs/
+*.md
