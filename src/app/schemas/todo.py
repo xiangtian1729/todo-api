@@ -28,7 +28,7 @@ from pydantic import BaseModel, Field
 class TodoCreate(BaseModel):
     """创建新 Todo 时，用户需要提供的数据
 
-    用户只需要提供 title（必填）和 description（可选）。
+    用户只需要提供 title（必填），description 和 priority 可选。
     其他字段（id, is_completed, created_at 等）由系统自动处理。
     """
 
@@ -44,6 +44,13 @@ class TodoCreate(BaseModel):
         max_length=2000,        # 描述最多 2000 字符
         examples=["去超市买今晚做饭需要的蔬菜和肉"],
         description="待办事项的详细描述（可选）",
+    )
+    priority: int = Field(
+        default=2,              # 默认中优先级
+        ge=1,                   # ge = greater or equal，最小值 1
+        le=3,                   # le = less or equal，最大值 3
+        examples=[2],
+        description="优先级：1=低, 2=中, 3=高（默认 2）",
     )
 
 
@@ -70,6 +77,12 @@ class TodoUpdate(BaseModel):
         default=None,
         description="是否已完成",
     )
+    priority: int | None = Field(
+        default=None,
+        ge=1,
+        le=3,
+        description="优先级：1=低, 2=中, 3=高",
+    )
 
 
 # ========== 返回给用户的 Todo 格式 ==========
@@ -87,6 +100,7 @@ class TodoResponse(BaseModel):
     title: str
     description: str | None
     is_completed: bool
+    priority: int
     created_at: datetime
     updated_at: datetime
 

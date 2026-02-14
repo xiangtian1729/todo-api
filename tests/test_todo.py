@@ -37,6 +37,7 @@ class TestCreateTodo:
         assert data["title"] == "学习 Python"
         assert data["description"] == "完成第一章"
         assert data["is_completed"] is False    # 默认未完成
+        assert data["priority"] == 2            # 默认中优先级
         assert data["id"] is not None           # 应该有自动生成的 id
         assert data["created_at"] is not None   # 应该有创建时间
 
@@ -62,6 +63,23 @@ class TestCreateTodo:
     async def test_create_todo_missing_title_fails(self, client: AsyncClient):
         """不提供标题应该失败（标题是必填的）"""
         payload = {"description": "没有标题"}
+
+        response = await client.post("/todos/", json=payload)
+
+        assert response.status_code == 422
+
+    async def test_create_todo_with_priority(self, client: AsyncClient):
+        """创建时指定优先级"""
+        payload = {"title": "紧急任务", "priority": 3}
+
+        response = await client.post("/todos/", json=payload)
+
+        assert response.status_code == 201
+        assert response.json()["priority"] == 3
+
+    async def test_create_todo_invalid_priority_fails(self, client: AsyncClient):
+        """优先级超出范围应该失败（只允许 1-3）"""
+        payload = {"title": "测试", "priority": 5}
 
         response = await client.post("/todos/", json=payload)
 
@@ -182,6 +200,19 @@ class TestUpdateTodo:
         response = await client.patch("/todos/999", json={"title": "无效"})
 
         assert response.status_code == 404
+
+    async def test_update_todo_priority(self, client: AsyncClient):
+        """更新优先级"""
+        # Arrange
+        create_resp = await client.post("/todos/", json={"title": "任务"})
+        todo_id = create_resp.json()["id"]
+
+        # Act
+        response = await client.patch(f"/todos/{todo_id}", json={"priority": 3})
+
+        # Assert
+        assert response.status_code == 200
+        assert response.json()["priority"] == 3
 
 
 # ========================================================================

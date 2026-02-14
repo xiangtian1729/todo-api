@@ -8,7 +8,7 @@ Todo 数据库模型
 SQLAlchemy 会自动根据这个类，在数据库里创建出对应的表。
 
 对应的数据库表结构（您学过的关系模型）：
-    todos(id, title, description, is_completed, created_at, updated_at)
+    todos(id, title, description, is_completed, priority, created_at, updated_at)
     主键：id
 """
 
@@ -39,6 +39,7 @@ class Todo(Base):
         title:          标题，必填，最长 200 字符
         description:    详细描述，可选，使用 Text 类型支持长文本
         is_completed:   是否完成，默认 False
+        priority:       优先级，1=低 2=中 3=高，默认 2
         created_at:     创建时间，由数据库自动记录
         updated_at:     最后更新时间，每次修改时自动更新
     """
@@ -73,6 +74,12 @@ class Todo(Base):
         nullable=False,
     )
 
+    priority: Mapped[int] = mapped_column(
+        Integer,
+        default=2,          # 默认中优先级（1=低, 2=中, 3=高）
+        nullable=False,
+    )
+
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
         server_default=func.now(),  # 由数据库服务器自动填入当前时间
@@ -91,4 +98,4 @@ class Todo(Base):
 
         例如：<Todo(id=1, title='买菜', is_completed=False)>
         """
-        return f"<Todo(id={self.id}, title='{self.title}', is_completed={self.is_completed})>"
+        return f"<Todo(id={self.id}, title='{self.title}', priority={self.priority}, is_completed={self.is_completed})>"
