@@ -11,12 +11,14 @@ FastAPI 应用入口
     运行应用时，uvicorn 会找到这个文件中的 app 对象来启动服务。
 """
 
+import time
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 
 from app.config import settings
 from app.database import engine
+from app.logging_config import logger
 from app.models.todo import Base
 from app.routers import todo as todo_router
 
@@ -39,11 +41,12 @@ async def lifespan(app: FastAPI):
     # 如果对应的表不存在，就自动创建
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
+    logger.info("Application started | %s v%s", settings.APP_NAME, settings.APP_VERSION)
 
     yield  # 应用运行中...
 
     # --- 关闭时 ---
-    # 释放数据库引擎的所有连接
+    logger.info("Application shutting down...")
     await engine.dispose()
 
 
@@ -55,9 +58,26 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
+# ========== 请求日志中间件 ==========
+# 中间件（Middleware）就像一个"拦截器"：
+# 每个请求进来时先经过它，每个响应出去时也经过它。
+# 这里我们用它来记录每个请求的方法、URL、状态码和耗时。
+@app.middleware("http")
+async def log_requests(request: Request, call_next):
+    start_time = time.time()
+    response = await call_next(request)
+    duration_ms = (time.time() - start_time) * 1000
+    logger.info(
+        "%s %s → %d (%.1fms)",
+        request.method,
+        request.url.path,
+        response.status_code,
+        duration_ms,
+    )
+    return response
+
+
 # ========== 注册路由 ==========
-# 把 todo 路由器挂载到主应用上
-# 之后所有 /todos/... 的请求都会交给 todo_router 处理
 app.include_router(todo_router.router)
 
 
