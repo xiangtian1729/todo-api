@@ -14,7 +14,7 @@ SQLAlchemy 会自动根据这个类，在数据库里创建出对应的表。
 
 from datetime import datetime, timezone
 
-from sqlalchemy import Boolean, DateTime, Integer, String, Text, func
+from sqlalchemy import Boolean, DateTime, ForeignKey, Integer, String, Text, func
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 
 
@@ -55,6 +55,12 @@ class Todo(Base):
         Integer,
         primary_key=True,   # 主键
         autoincrement=True, # 自增长：1, 2, 3, ...
+    )
+
+    user_id: Mapped[int] = mapped_column(
+        Integer,
+        ForeignKey("users.id"),   # 外键：关联 users 表的 id
+        nullable=False,
     )
 
     title: Mapped[str] = mapped_column(

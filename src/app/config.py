@@ -30,9 +30,13 @@ class Settings(BaseSettings):
     DEBUG: bool = True
 
     # 数据库配置
-    # SQLite 的连接地址格式：sqlite+aiosqlite:///文件路径
-    # 前缀 sqlite+aiosqlite 表示：使用 SQLite 数据库 + aiosqlite 异步驱动
     DATABASE_URL: str = "sqlite+aiosqlite:///./todo.db"
+
+    # JWT 认证配置
+    # SECRET_KEY 用于签名 JWT token（生产环境必须换成随机长字符串！）
+    SECRET_KEY: str = "dev-secret-key-change-in-production"
+    # Token 过期时间（分钟）
+    ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
 
     class Config:
         # 告诉 pydantic-settings 从项目根目录的 .env 文件读取配置

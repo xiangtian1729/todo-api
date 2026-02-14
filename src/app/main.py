@@ -20,7 +20,9 @@ from app.config import settings
 from app.database import engine
 from app.logging_config import logger
 from app.models.todo import Base
+from app.models.user import User  # noqa: F401 — 确保 User 表被 Base 认识
 from app.routers import todo as todo_router
+from app.routers import auth as auth_router
 
 
 # ========== 应用生命周期管理 ==========
@@ -78,6 +80,7 @@ async def log_requests(request: Request, call_next):
 
 
 # ========== 注册路由 ==========
+app.include_router(auth_router.router)
 app.include_router(todo_router.router)
 
 
