@@ -1,0 +1,7 @@
+[tool.pytest.ini_options]
+# 告诉 pytest 使用 asyncio 模式运行异步测试
+asyncio_mode = "auto"
+# 告诉 pytest 在 src/ 目录下查找源代码
+pythonpath = ["src"]
+# 测试文件的查找路径
+testpaths = ["tests"]
