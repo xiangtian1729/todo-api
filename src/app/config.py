@@ -11,7 +11,12 @@
 pydantic-settings 帮我们自动从 .env 文件或系统环境变量中读取配置。
 """
 
+import logging
+import sys
+
 from pydantic_settings import BaseSettings, SettingsConfigDict
+
+_DEFAULT_SECRET_KEY = "dev-secret-key-change-in-production"
 
 
 class Settings(BaseSettings):
@@ -34,7 +39,7 @@ class Settings(BaseSettings):
 
     # JWT 认证配置
     # SECRET_KEY 用于签名 JWT token（生产环境必须换成随机长字符串！）
-    SECRET_KEY: str = "dev-secret-key-change-in-production"
+    SECRET_KEY: str = _DEFAULT_SECRET_KEY
     # Token 过期时间（分钟）
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
 
@@ -47,3 +52,12 @@ class Settings(BaseSettings):
 # 创建一个全局配置实例，其他模块导入这个实例即可使用配置
 # 这是一个常见的设计模式叫"单例"——整个应用只需要一份配置
 settings = Settings()
+
+# 安全检查：非 DEBUG 环境下不得使用默认 SECRET_KEY
+if not settings.DEBUG and settings.SECRET_KEY == _DEFAULT_SECRET_KEY:
+    logging.basicConfig(stream=sys.stderr)
+    logging.critical(
+        "FATAL: SECRET_KEY 为默认值，在非 DEBUG 环境下不安全！"
+        "请在 .env 或环境变量中设置一个随机的 SECRET_KEY。"
+    )
+    sys.exit(1)
