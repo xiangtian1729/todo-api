@@ -14,6 +14,26 @@
 
 import logging
 import sys
+from logging.handlers import RotatingFileHandler
+
+from app.config import settings
+
+
+class JsonFormatter(logging.Formatter):
+    """简单的 JSON 格式化器（生产环境使用，便于日志采集）"""
+
+    def format(self, record: logging.LogRecord) -> str:
+        import json
+
+        log_entry = {
+            "timestamp": self.formatTime(record, self.datefmt),
+            "level": record.levelname,
+            "message": record.getMessage(),
+            "module": record.module,
+        }
+        if record.exc_info and record.exc_info[1]:
+            log_entry["exception"] = self.formatException(record.exc_info)
+        return json.dumps(log_entry, ensure_ascii=False)
 
 
 def setup_logging() -> logging.Logger:
@@ -27,24 +47,34 @@ def setup_logging() -> logging.Logger:
         CRITICAL → 严重错误（整个应用可能挂了）
     """
     # 创建一个名为 "todo_api" 的日志记录器
-    logger = logging.getLogger("todo_api")
-    logger.setLevel(logging.INFO)
+    app_logger = logging.getLogger("todo_api")
+    app_logger.setLevel(logging.INFO)
 
     # 避免重复添加处理器（应用重载时可能会多次调用）
-    if not logger.handlers:
-        # 创建控制台输出处理器
-        handler = logging.StreamHandler(sys.stdout)
-        handler.setLevel(logging.INFO)
-
-        # 设置日志格式：时间 | 级别 | 消息
-        formatter = logging.Formatter(
+    if not app_logger.handlers:
+        # 控制台处理器（始终启用）
+        console_handler = logging.StreamHandler(sys.stdout)
+        console_handler.setLevel(logging.INFO)
+        console_formatter = logging.Formatter(
             fmt="%(asctime)s | %(levelname)-8s | %(message)s",
             datefmt="%Y-%m-%d %H:%M:%S",
         )
-        handler.setFormatter(formatter)
-        logger.addHandler(handler)
+        console_handler.setFormatter(console_formatter)
+        app_logger.addHandler(console_handler)
 
-    return logger
+        # 文件处理器（非 DEBUG 模式自动启用，10MB per file，保留 5 份）
+        if not settings.DEBUG:
+            file_handler = RotatingFileHandler(
+                "logs/app.log",
+                maxBytes=10 * 1024 * 1024,
+                backupCount=5,
+                encoding="utf-8",
+            )
+            file_handler.setLevel(logging.INFO)
+            file_handler.setFormatter(JsonFormatter(datefmt="%Y-%m-%dT%H:%M:%S"))
+            app_logger.addHandler(file_handler)
+
+    return app_logger
 
 
 # 全局日志实例
