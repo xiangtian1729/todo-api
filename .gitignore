@@ -3,22 +3,20 @@ __pycache__/
 *.pyc
 *.pyo
 *.pyd
-*.egg-info/
 
 # Virtual environment
 .venv/
 venv/
 
-# Environment variables (sensitive!)
+# Local env files
 .env
+!.env.example
 
-# Database
+# Local SQLite artifacts
 *.db
 
 # VS Code
 .vscode/
-
-# IDE
 .idea/
 
 # OS

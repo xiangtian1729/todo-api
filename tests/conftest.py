@@ -1,34 +1,85 @@
-"""
-测试配置文件（conftest.py）
-
-提供共享的测试工具（fixture）：
-1. 独立的内存测试数据库
-2. HTTP 测试客户端
-3. 已登录的客户端（自动带 JWT token）
-"""
+import asyncio
+import os
+import subprocess
+import sys
+from pathlib import Path
 
 import pytest
 from httpx import ASGITransport, AsyncClient
+from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 
 from app.database import get_db
 from app.main import app
-from app.models.todo import Base
 
-# 测试用内存数据库
-TEST_DATABASE_URL = "sqlite+aiosqlite:///:memory:"
+ROOT_DIR = Path(__file__).resolve().parents[1]
+TEST_DB_PATH = ROOT_DIR / "tests" / "test_api.db"
+TEST_DATABASE_URL = f"sqlite+aiosqlite:///{TEST_DB_PATH.as_posix()}"
+TEST_SCHEMA_REVISION = "head"
+
+TABLES_TO_CLEAN = [
+    "task_watchers",
+    "task_tags",
+    "task_comments",
+    "audit_logs",
+    "idempotency_keys",
+    "tasks",
+    "workspace_memberships",
+    "projects",
+    "workspaces",
+    "users",
+]
+
+
+def _run_alembic(*args: str) -> None:
+    env = os.environ.copy()
+    env["DATABASE_URL"] = TEST_DATABASE_URL
+    subprocess.run(
+        [sys.executable, "-m", "alembic", *args],
+        cwd=ROOT_DIR,
+        env=env,
+        check=True,
+        capture_output=True,
+        text=True,
+    )
+
+
 test_engine = create_async_engine(TEST_DATABASE_URL, echo=False)
 test_session = async_sessionmaker(test_engine, class_=AsyncSession, expire_on_commit=False)
 
 
-@pytest.fixture(autouse=True)
-async def setup_database():
-    """每个测试前创建表，测试后销毁"""
-    async with test_engine.begin() as conn:
-        await conn.run_sync(Base.metadata.create_all)
+@pytest.fixture(scope="session", autouse=True)
+def migrated_schema() -> None:
+    if TEST_DB_PATH.exists():
+        TEST_DB_PATH.unlink()
+
+    _run_alembic("upgrade", TEST_SCHEMA_REVISION)
     yield
+
+    asyncio.run(test_engine.dispose())
+    _run_alembic("downgrade", "base")
+    if TEST_DB_PATH.exists():
+        TEST_DB_PATH.unlink()
+
+
+@pytest.fixture(autouse=True)
+async def cleanup_database(migrated_schema):
     async with test_engine.begin() as conn:
-        await conn.run_sync(Base.metadata.drop_all)
+        await conn.execute(text("PRAGMA foreign_keys=OFF"))
+        for table in TABLES_TO_CLEAN:
+            await conn.execute(text(f"DELETE FROM {table}"))
+
+        seq_exists = await conn.execute(
+            text(
+                "SELECT name FROM sqlite_master "
+                "WHERE type='table' AND name='sqlite_sequence'"
+            )
+        )
+        if seq_exists.scalar_one_or_none() is not None:
+            await conn.execute(text("DELETE FROM sqlite_sequence"))
+
+        await conn.execute(text("PRAGMA foreign_keys=ON"))
+    yield
 
 
 async def override_get_db():
@@ -41,7 +92,6 @@ app.dependency_overrides[get_db] = override_get_db
 
 @pytest.fixture
 async def client():
-    """未认证的 HTTP 客户端"""
     transport = ASGITransport(app=app)
     async with AsyncClient(transport=transport, base_url="http://test") as ac:
         yield ac
@@ -49,22 +99,14 @@ async def client():
 
 @pytest.fixture
 async def auth_client(client: AsyncClient):
-    """已认证的 HTTP 客户端（自动注册、登录、带 token）
-
-    这个 fixture 帮你省去每个测试里都要注册+登录的重复步骤。
-    """
-    # 注册测试用户
-    await client.post("/auth/register", json={
-        "username": "testuser",
-        "password": "testpass123",
-    })
-    # 登录获取 token
-    login_resp = await client.post("/auth/login", data={
-        "username": "testuser",
-        "password": "testpass123",
-    })
+    await client.post(
+        "/auth/register",
+        json={"username": "testuser", "password": "testpass123"},
+    )
+    login_resp = await client.post(
+        "/auth/login",
+        data={"username": "testuser", "password": "testpass123"},
+    )
     token = login_resp.json()["access_token"]
-
-    # 设置请求头，之后所有请求都自动带 token
     client.headers["Authorization"] = f"Bearer {token}"
     yield client

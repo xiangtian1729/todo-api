@@ -10,22 +10,32 @@ from alembic import context
 from sqlalchemy import pool
 from sqlalchemy.ext.asyncio import async_engine_from_config
 
-# Ensure `src/` is importable when running Alembic from repository root.
 ROOT_DIR = Path(__file__).resolve().parents[1]
 SRC_DIR = ROOT_DIR / "src"
 if str(SRC_DIR) not in sys.path:
     sys.path.insert(0, str(SRC_DIR))
 
 from app.config import settings
-from app.models.todo import Base
-from app.models.user import User  # noqa: F401
+from app.models.base import Base
+from app.models import (  # noqa: F401
+    audit_log,
+    idempotency_key,
+    project,
+    task,
+    task_comment,
+    task_tag,
+    task_watcher,
+    todo,
+    user,
+    workspace,
+    workspace_membership,
+)
 
 config = context.config
 
 if config.config_file_name is not None:
     fileConfig(config.config_file_name)
 
-# DATABASE_URL from environment has highest priority.
 database_url = os.getenv("DATABASE_URL", settings.DATABASE_URL)
 config.set_main_option("sqlalchemy.url", database_url)
 
@@ -33,7 +43,6 @@ target_metadata = Base.metadata
 
 
 def run_migrations_offline() -> None:
-    """Run migrations in 'offline' mode."""
     url = config.get_main_option("sqlalchemy.url")
     context.configure(
         url=url,
@@ -59,7 +68,6 @@ def do_run_migrations(connection) -> None:
 
 
 async def run_migrations_online() -> None:
-    """Run migrations in 'online' mode using async engine."""
     connectable = async_engine_from_config(
         config.get_section(config.config_ini_section, {}),
         prefix="sqlalchemy.",

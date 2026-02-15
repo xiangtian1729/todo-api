@@ -22,5 +22,11 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements-dev.txt
 
+      - name: Lint
+        run: python -m ruff check .
+
+      - name: Type check
+        run: python -m mypy src/app/services
+
       - name: Run tests
         run: pytest -q
