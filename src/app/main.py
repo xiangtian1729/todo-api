@@ -1,70 +1,78 @@
-"""
-FastAPI 应用入口
-
-这个文件是整个应用的"总指挥"，负责：
-    1. 创建 FastAPI 应用实例
-    2. 注册所有路由（告诉 FastAPI："这些 URL 归谁管"）
-    3. 设置应用启动/关闭时要做的事（比如初始化日志、释放连接）
-
-为什么叫 main.py？
-    这是 Python 社区的约定俗成。
-    运行应用时，uvicorn 会找到这个文件中的 app 对象来启动服务。
-"""
-
 import time
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, Request
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 
 from app.config import settings
 from app.database import engine
+from app.exceptions import (
+    AppError,
+    BadRequestError,
+    ConflictError,
+    ForbiddenError,
+    NotFoundError,
+)
 from app.logging_config import logger
-from app.routers import todo as todo_router
+from app.routers import audit as audit_router
 from app.routers import auth as auth_router
+from app.routers import collaboration as collaboration_router
+from app.routers import projects as projects_router
+from app.routers import tasks as tasks_router
+from app.routers import workspaces as workspaces_router
+
+# 业务异常 → HTTP 状态码映射
+_EXCEPTION_STATUS_MAP: dict[type[AppError], int] = {
+    NotFoundError: 404,
+    ForbiddenError: 403,
+    ConflictError: 409,
+    BadRequestError: 400,
+}
 
 
-# ========== 应用生命周期管理 ==========
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    """管理应用的启动和关闭过程
-
-    这个函数在应用启动时执行 yield 之前的代码，
-    在应用关闭时执行 yield 之后的代码。
-
-    好比开店和关店：
-        开店前：检查设备、准备食材
-        关店后：清理厨房、关灯（释放数据库连接）
-    """
-    # --- 启动时 ---
-    # 数据库结构由 Alembic 迁移脚本管理，不在应用启动时自动建表。
     logger.info("Application started | %s v%s", settings.APP_NAME, settings.APP_VERSION)
-
-    yield  # 应用运行中...
-
-    # --- 关闭时 ---
+    yield
     logger.info("Application shutting down...")
     await engine.dispose()
 
 
-# ========== 创建 FastAPI 应用实例 ==========
 app = FastAPI(
     title=settings.APP_NAME,
     version=settings.APP_VERSION,
-    description="一个专业的待办事项 API，支持完整的 CRUD 操作。",
+    description="Todo API with team collaboration support.",
     lifespan=lifespan,
 )
 
-# ========== 请求日志中间件 ==========
-# 中间件（Middleware）就像一个"拦截器"：
-# 每个请求进来时先经过它，每个响应出去时也经过它。
-# 这里我们用它来记录每个请求的方法、URL、状态码和耗时。
+
+# ========== 异常处理器 ==========
+# 将 Service 层的业务异常统一转换为 HTTP 响应
+@app.exception_handler(AppError)
+async def app_error_handler(request: Request, exc: AppError) -> JSONResponse:
+    status_code = _EXCEPTION_STATUS_MAP.get(type(exc), 500)
+    return JSONResponse(status_code=status_code, content={"detail": exc.detail})
+
+
+# ========== CORS 中间件 ==========
+# 允许前端跨域调用 API（开发环境允许所有来源，生产环境应按需配置）
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"] if settings.DEBUG else [],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+
 @app.middleware("http")
 async def log_requests(request: Request, call_next):
     start_time = time.time()
     response = await call_next(request)
     duration_ms = (time.time() - start_time) * 1000
     logger.info(
-        "%s %s → %d (%.1fms)",
+        "%s %s -> %d (%.1fms)",
         request.method,
         request.url.path,
         response.status_code,
@@ -73,25 +81,16 @@ async def log_requests(request: Request, call_next):
     return response
 
 
-# ========== 注册路由 ==========
 app.include_router(auth_router.router)
-app.include_router(todo_router.router)
+app.include_router(workspaces_router.router)
+app.include_router(projects_router.router)
+app.include_router(tasks_router.router)
+app.include_router(collaboration_router.router)
+app.include_router(audit_router.router)
 
 
-# ========== 健康检查端点 ==========
-@app.get(
-    "/health",
-    tags=["System"],
-    summary="健康检查",
-    description="检查 API 服务是否正常运行。",
-)
+@app.get("/health", tags=["System"], summary="Health check")
 async def health_check() -> dict:
-    """一个简单的健康检查端点
-
-    运维团队和监控工具会定期访问这个 URL，
-    如果返回正常，说明服务还活着。
-    这是生产环境的标准做法。
-    """
     return {
         "status": "healthy",
         "app_name": settings.APP_NAME,
