@@ -11,7 +11,7 @@
 pydantic-settings 帮我们自动从 .env 文件或系统环境变量中读取配置。
 """
 
-from pydantic_settings import BaseSettings
+from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class Settings(BaseSettings):
@@ -38,10 +38,10 @@ class Settings(BaseSettings):
     # Token 过期时间（分钟）
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
 
-    class Config:
-        # 告诉 pydantic-settings 从项目根目录的 .env 文件读取配置
-        env_file = ".env"
-        env_file_encoding = "utf-8"
+    model_config = SettingsConfigDict(
+        env_file=".env",
+        env_file_encoding="utf-8",
+    )
 
 
 # 创建一个全局配置实例，其他模块导入这个实例即可使用配置

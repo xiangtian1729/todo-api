@@ -8,6 +8,27 @@ Todo API 端点测试
 from httpx import AsyncClient
 
 
+async def _get_auth_headers(
+    client: AsyncClient,
+    username: str,
+    password: str = "secret123",
+) -> dict[str, str]:
+    register_resp = await client.post("/auth/register", json={
+        "username": username,
+        "password": password,
+    })
+    assert register_resp.status_code == 201
+
+    login_resp = await client.post("/auth/login", data={
+        "username": username,
+        "password": password,
+    })
+    assert login_resp.status_code == 200
+
+    token = login_resp.json()["access_token"]
+    return {"Authorization": f"Bearer {token}"}
+
+
 # ========================================================================
 # POST /todos/ — 创建 Todo 的测试
 # ========================================================================
@@ -95,6 +116,16 @@ class TestListTodos:
         assert len(data) == 1
         assert data[0]["title"] == "Todo 2"
 
+    async def test_list_todos_negative_skip_fails(self, auth_client: AsyncClient):
+        """skip < 0 时应返回 422"""
+        response = await auth_client.get("/todos/", params={"skip": -1, "limit": 10})
+        assert response.status_code == 422
+
+    async def test_list_todos_limit_out_of_range_fails(self, auth_client: AsyncClient):
+        """limit 超出范围时应返回 422"""
+        response = await auth_client.get("/todos/", params={"skip": 0, "limit": 101})
+        assert response.status_code == 422
+
 
 # ========================================================================
 # GET /todos/{id} — 获取单个 Todo
@@ -116,6 +147,58 @@ class TestGetTodo:
         """找不到返回 404"""
         response = await auth_client.get("/todos/999")
         assert response.status_code == 404
+
+
+# ========================================================================
+# 用户隔离权限测试（A 不能操作 B 的 Todo）
+# ========================================================================
+
+class TestTodoAuthorizationIsolation:
+
+    async def test_user_cannot_read_others_todo(self, client: AsyncClient):
+        headers_a = await _get_auth_headers(client, "alice")
+        create_resp = await client.post("/todos/", json={"title": "Alice Todo"}, headers=headers_a)
+        todo_id = create_resp.json()["id"]
+
+        headers_b = await _get_auth_headers(client, "bob")
+        response = await client.get(f"/todos/{todo_id}", headers=headers_b)
+
+        assert response.status_code == 404
+
+    async def test_user_cannot_update_others_todo(self, client: AsyncClient):
+        headers_a = await _get_auth_headers(client, "alice")
+        create_resp = await client.post("/todos/", json={"title": "Alice Todo"}, headers=headers_a)
+        todo_id = create_resp.json()["id"]
+
+        headers_b = await _get_auth_headers(client, "bob")
+        response = await client.patch(f"/todos/{todo_id}", json={"title": "Hacked"}, headers=headers_b)
+
+        assert response.status_code == 404
+
+    async def test_user_cannot_delete_others_todo(self, client: AsyncClient):
+        headers_a = await _get_auth_headers(client, "alice")
+        create_resp = await client.post("/todos/", json={"title": "Alice Todo"}, headers=headers_a)
+        todo_id = create_resp.json()["id"]
+
+        headers_b = await _get_auth_headers(client, "bob")
+        response = await client.delete(f"/todos/{todo_id}", headers=headers_b)
+
+        assert response.status_code == 404
+
+    async def test_list_only_returns_current_user_todos(self, client: AsyncClient):
+        headers_a = await _get_auth_headers(client, "alice")
+        await client.post("/todos/", json={"title": "A1"}, headers=headers_a)
+        await client.post("/todos/", json={"title": "A2"}, headers=headers_a)
+
+        headers_b = await _get_auth_headers(client, "bob")
+        await client.post("/todos/", json={"title": "B1"}, headers=headers_b)
+
+        response = await client.get("/todos/", headers=headers_b)
+        data = response.json()
+
+        assert response.status_code == 200
+        assert len(data) == 1
+        assert data[0]["title"] == "B1"
 
 
 # ========================================================================

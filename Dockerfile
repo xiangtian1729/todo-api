@@ -17,6 +17,7 @@ FROM python:3.13-slim
 # ---------- 第 2 步：设置工作目录 ----------
 # 容器内的 /app 目录就是我们的"项目根目录"
 WORKDIR /app
+ENV PYTHONPATH=/app/src
 
 # ---------- 第 3 步：先安装依赖（利用 Docker 缓存） ----------
 # 为什么先复制 requirements.txt 再装依赖，最后才复制代码？
@@ -29,6 +30,8 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 # ---------- 第 4 步：复制源代码 ----------
 COPY src/ ./src/
+COPY alembic.ini ./
+COPY migrations/ ./migrations/
 
 # ---------- 第 5 步：暴露端口 ----------
 # 告诉 Docker "这个容器会在 8000 端口提供服务"
@@ -37,4 +40,4 @@ EXPOSE 8000
 # ---------- 第 6 步：启动命令 ----------
 # 容器启动时执行这个命令
 # --host 0.0.0.0 让容器外也能访问（默认是 127.0.0.1 只允许容器内访问）
-CMD ["python", "-m", "uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
+CMD ["sh", "-c", "alembic upgrade head && python -m uvicorn app.main:app --host 0.0.0.0 --port 8000"]

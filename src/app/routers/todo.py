@@ -5,7 +5,7 @@ Todo API 路由模块
 每个用户只能看到和操作自己的 Todo。
 """
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -45,8 +45,8 @@ async def create_todo(
     summary="获取待办事项列表",
 )
 async def list_todos(
-    skip: int = 0,
-    limit: int = 20,
+    skip: int = Query(default=0, ge=0, description="跳过的记录数（>= 0）"),
+    limit: int = Query(default=20, ge=1, le=100, description="每页数量（1-100）"),
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ) -> list[Todo]:
@@ -54,6 +54,7 @@ async def list_todos(
     query = (
         select(Todo)
         .where(Todo.user_id == current_user.id)
+        .order_by(Todo.created_at.desc(), Todo.id.desc())
         .offset(skip)
         .limit(limit)
     )

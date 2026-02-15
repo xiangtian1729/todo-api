@@ -4,7 +4,7 @@ FastAPI 应用入口
 这个文件是整个应用的"总指挥"，负责：
     1. 创建 FastAPI 应用实例
     2. 注册所有路由（告诉 FastAPI："这些 URL 归谁管"）
-    3. 设置应用启动/关闭时要做的事（比如创建数据库表）
+    3. 设置应用启动/关闭时要做的事（比如初始化日志、释放连接）
 
 为什么叫 main.py？
     这是 Python 社区的约定俗成。
@@ -19,8 +19,6 @@ from fastapi import FastAPI, Request
 from app.config import settings
 from app.database import engine
 from app.logging_config import logger
-from app.models.todo import Base
-from app.models.user import User  # noqa: F401 — 确保 User 表被 Base 认识
 from app.routers import todo as todo_router
 from app.routers import auth as auth_router
 
@@ -34,15 +32,11 @@ async def lifespan(app: FastAPI):
     在应用关闭时执行 yield 之后的代码。
 
     好比开店和关店：
-        开店前：检查设备、准备食材（创建数据库表）
+        开店前：检查设备、准备食材
         关店后：清理厨房、关灯（释放数据库连接）
     """
     # --- 启动时 ---
-    # 创建所有数据库表（如果不存在）
-    # 这行代码会检查 Base 认识的所有模型（目前是 Todo），
-    # 如果对应的表不存在，就自动创建
-    async with engine.begin() as conn:
-        await conn.run_sync(Base.metadata.create_all)
+    # 数据库结构由 Alembic 迁移脚本管理，不在应用启动时自动建表。
     logger.info("Application started | %s v%s", settings.APP_NAME, settings.APP_VERSION)
 
     yield  # 应用运行中...
