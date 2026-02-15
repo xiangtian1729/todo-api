@@ -13,7 +13,10 @@
     - 每次操作完成后要"归还"工作台（关闭会话），避免资源泄漏
 """
 
+from collections.abc import AsyncGenerator
+
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
+
 from app.config import settings
 
 # ========== 第一步：创建数据库引擎 ==========
@@ -36,7 +39,7 @@ async_session = async_sessionmaker(
 
 
 # ========== 第三步：定义获取会话的依赖函数 ==========
-async def get_db() -> AsyncSession:
+async def get_db() -> AsyncGenerator[AsyncSession, None]:
     """获取数据库会话的依赖注入函数
 
     这是 FastAPI 的"依赖注入"模式：
