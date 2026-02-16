@@ -17,7 +17,7 @@ select = ["E", "F", "I", "B"]
 
 [tool.mypy]
 python_version = "3.13"
-files = ["src/app/services"]
+files = ["src/app"]
 ignore_missing_imports = true
 check_untyped_defs = true
 warn_unused_ignores = true

@@ -80,7 +80,12 @@ async def list_tasks(
         due_at_from=due_at_from,
         due_at_to=due_at_to,
     )
-    return {"items": items, "total": total, "skip": skip, "limit": limit}
+    return {
+        "items": [TaskResponse.model_validate(item) for item in items],
+        "total": total,
+        "skip": skip,
+        "limit": limit,
+    }
 
 
 @router.get(
@@ -93,12 +98,13 @@ async def get_task(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ) -> TaskResponse:
-    return await task_service.get_task(
+    task = await task_service.get_task(
         db,
         workspace_id=workspace_id,
         task_id=task_id,
         user_id=current_user.id,
     )
+    return TaskResponse.model_validate(task)
 
 
 @router.patch(
@@ -112,13 +118,14 @@ async def update_task(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ) -> TaskResponse:
-    return await task_service.update_task(
+    task = await task_service.update_task(
         db,
         workspace_id=workspace_id,
         task_id=task_id,
         actor_user_id=current_user.id,
         data=data,
     )
+    return TaskResponse.model_validate(task)
 
 
 @router.post(
@@ -132,13 +139,14 @@ async def transition_task_status(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ) -> TaskResponse:
-    return await task_service.transition_task_status(
+    task = await task_service.transition_task_status(
         db,
         workspace_id=workspace_id,
         task_id=task_id,
         actor_user_id=current_user.id,
         data=data,
     )
+    return TaskResponse.model_validate(task)
 
 
 @router.delete(

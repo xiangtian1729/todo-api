@@ -52,12 +52,13 @@ async def app_error_handler(request: Request, exc: AppError) -> JSONResponse:
     return JSONResponse(status_code=status_code, content={"detail": exc.detail})
 
 
-cors_allowed_origins = ["*"] if settings.DEBUG else settings.cors_allowed_origins
+cors_allowed_origins = settings.cors_allowed_origins
+allow_credentials = "*" not in cors_allowed_origins
 
 app.add_middleware(
     CORSMiddleware,
     allow_origins=cors_allowed_origins,
-    allow_credentials=True,
+    allow_credentials=allow_credentials,
     allow_methods=["*"],
     allow_headers=["*"],
 )

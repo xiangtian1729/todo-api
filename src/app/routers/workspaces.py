@@ -81,12 +81,13 @@ async def add_workspace_member(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ) -> WorkspaceMemberResponse:
-    return await workspace_service.add_workspace_member(
+    membership = await workspace_service.add_workspace_member(
         db,
         workspace_id=workspace_id,
         actor_user_id=current_user.id,
         data=data,
     )
+    return WorkspaceMemberResponse.model_validate(membership)
 
 
 @router.patch(
@@ -100,13 +101,14 @@ async def update_workspace_member(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ) -> WorkspaceMemberResponse:
-    return await workspace_service.update_workspace_member(
+    membership = await workspace_service.update_workspace_member(
         db,
         workspace_id=workspace_id,
         actor_user_id=current_user.id,
         target_user_id=user_id,
         data=data,
     )
+    return WorkspaceMemberResponse.model_validate(membership)
 
 
 @router.delete(

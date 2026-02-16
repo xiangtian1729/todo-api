@@ -11,7 +11,8 @@ _DEFAULT_SECRET_KEY = "dev-secret-key-change-in-production"
 class Settings(BaseSettings):
     APP_NAME: str = "Todo API"
     APP_VERSION: str = "0.1.0"
-    DEBUG: bool = True
+    APP_ENV: str = "development"
+    DEBUG: bool = False
 
     DATABASE_URL: str = "sqlite+aiosqlite:///./todo.db"
 
@@ -37,10 +38,10 @@ class Settings(BaseSettings):
 
 settings = Settings()
 
-if not settings.DEBUG and settings.SECRET_KEY == _DEFAULT_SECRET_KEY:
+if settings.APP_ENV.lower() == "production" and settings.SECRET_KEY == _DEFAULT_SECRET_KEY:
     logging.basicConfig(stream=sys.stderr)
     logging.critical(
-        "FATAL: SECRET_KEY is using the default value in non-DEBUG mode. "
+        "FATAL: SECRET_KEY is using the default value in production. "
         "Please set a strong random SECRET_KEY in environment variables.",
     )
     sys.exit(1)

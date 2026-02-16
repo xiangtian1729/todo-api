@@ -57,7 +57,7 @@ todo-api/
 ├── docs/                     # 项目文档
 ├── Dockerfile                # 后端 Docker 镜像
 ├── docker-compose.yml        # 全栈编排
-└── .github/workflows/ci.yml  # CI：lint + type check + test + frontend build
+└── .github/workflows/ci.yml  # CI：lint + type check + test + frontend lint/test/build
 ```
 
 ## API 端点（28 个）
@@ -146,7 +146,8 @@ pytest -q
 | 变量 | 说明 | 默认值 |
 |------|------|--------|
 | `APP_NAME` | 应用名称 | `Todo API` |
-| `DEBUG` | 调试模式 | `true` |
+| `APP_ENV` | 运行环境（development/staging/production） | `development` |
+| `DEBUG` | 调试模式 | `false` |
 | `DATABASE_URL` | 数据库连接串 | `sqlite+aiosqlite:///./todo.db` |
 | `SECRET_KEY` | JWT 密钥 | — |
 | `ACCESS_TOKEN_EXPIRE_MINUTES` | Token 过期时间 | `30` |

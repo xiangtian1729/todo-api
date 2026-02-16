@@ -21,12 +21,13 @@ async def create_project(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ) -> ProjectResponse:
-    return await project_service.create_project(
+    project = await project_service.create_project(
         db,
         workspace_id=workspace_id,
         actor_user_id=current_user.id,
         data=data,
     )
+    return ProjectResponse.model_validate(project)
 
 
 @router.get("/workspaces/{workspace_id}/projects", response_model=list[ProjectResponse])
@@ -35,11 +36,12 @@ async def list_projects(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ) -> list[ProjectResponse]:
-    return await project_service.list_projects(
+    projects = await project_service.list_projects(
         db,
         workspace_id=workspace_id,
         user_id=current_user.id,
     )
+    return [ProjectResponse.model_validate(project) for project in projects]
 
 
 @router.get(
@@ -52,12 +54,13 @@ async def get_project(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ) -> ProjectResponse:
-    return await project_service.get_project(
+    project = await project_service.get_project(
         db,
         workspace_id=workspace_id,
         project_id=project_id,
         user_id=current_user.id,
     )
+    return ProjectResponse.model_validate(project)
 
 
 @router.patch(
@@ -71,13 +74,14 @@ async def update_project(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ) -> ProjectResponse:
-    return await project_service.update_project(
+    project = await project_service.update_project(
         db,
         workspace_id=workspace_id,
         project_id=project_id,
         actor_user_id=current_user.id,
         data=data,
     )
+    return ProjectResponse.model_validate(project)
 
 
 @router.delete(

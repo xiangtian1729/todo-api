@@ -32,13 +32,14 @@ async def create_comment(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ) -> CommentResponse:
-    return await comment_service.create_comment(
+    comment = await comment_service.create_comment(
         db,
         workspace_id=workspace_id,
         task_id=task_id,
         actor_user_id=current_user.id,
         data=data,
     )
+    return CommentResponse.model_validate(comment)
 
 
 @router.get(
@@ -51,12 +52,13 @@ async def list_comments(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ) -> list[CommentResponse]:
-    return await comment_service.list_comments(
+    comments = await comment_service.list_comments(
         db,
         workspace_id=workspace_id,
         task_id=task_id,
         user_id=current_user.id,
     )
+    return [CommentResponse.model_validate(comment) for comment in comments]
 
 
 @router.patch(
@@ -71,7 +73,7 @@ async def update_comment(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ) -> CommentResponse:
-    return await comment_service.update_comment(
+    comment = await comment_service.update_comment(
         db,
         workspace_id=workspace_id,
         task_id=task_id,
@@ -79,6 +81,7 @@ async def update_comment(
         actor_user_id=current_user.id,
         data=data,
     )
+    return CommentResponse.model_validate(comment)
 
 
 @router.delete(
@@ -113,13 +116,14 @@ async def add_tag(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ) -> TagResponse:
-    return await tag_service.add_tag(
+    tag = await tag_service.add_tag(
         db,
         workspace_id=workspace_id,
         task_id=task_id,
         actor_user_id=current_user.id,
         data=data,
     )
+    return TagResponse.model_validate(tag)
 
 
 @router.delete(
@@ -154,13 +158,14 @@ async def add_watcher(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ) -> WatcherResponse:
-    return await watcher_service.add_watcher(
+    watcher = await watcher_service.add_watcher(
         db,
         workspace_id=workspace_id,
         task_id=task_id,
         actor_user_id=current_user.id,
         data=data,
     )
+    return WatcherResponse.model_validate(watcher)
 
 
 @router.delete(
