@@ -55,11 +55,14 @@ def _apply_task_filters(
     *,
     status_filter: TaskStatus | None,
     assignee_id: int | None,
+    project_id: int | None,
     tag: str | None,
     due_at_from: datetime | None,
     due_at_to: datetime | None,
 ):
     """将过滤条件统一应用到查询和计数查询上，避免重复构建。"""
+    if project_id is not None:
+        query = query.where(Task.project_id == project_id)
     if tag is not None:
         query = query.join(TaskTag, TaskTag.task_id == Task.id).where(TaskTag.tag == tag)
 
@@ -178,6 +181,7 @@ async def list_tasks(
     sort_order: SortOrder,
     status_filter: TaskStatus | None,
     assignee_id: int | None,
+    project_id: int | None,
     tag: str | None,
     due_at_from: datetime | None,
     due_at_to: datetime | None,
@@ -190,6 +194,7 @@ async def list_tasks(
     filter_kwargs = dict(
         status_filter=status_filter,
         assignee_id=assignee_id,
+        project_id=project_id,
         tag=tag,
         due_at_from=due_at_from,
         due_at_to=due_at_to,

@@ -1,4 +1,13 @@
+# ==========================================
+# 全栈 Docker Compose 配置
+# ==========================================
+# 启动: docker-compose up --build
+# 停止: docker-compose down
+# 清除数据: docker-compose down -v
+# ==========================================
+
 services:
+  # ---------- 后端 API ----------
   api:
     build: .
     ports:
@@ -12,6 +21,25 @@ services:
       - ACCESS_TOKEN_EXPIRE_MINUTES=30
     volumes:
       - todo-data:/app/data
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/docs')"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  # ---------- 前端 ----------
+  frontend:
+    build:
+      context: ./frontend
+      args:
+        # 容器间通信用服务名，但浏览器端需要 localhost
+        # Next.js 在构建时将 NEXT_PUBLIC_ 变量内联到客户端代码
+        NEXT_PUBLIC_API_URL: http://localhost:8000
+    ports:
+      - "3000:3000"
+    depends_on:
+      api:
+        condition: service_healthy
 
 volumes:
   todo-data:

@@ -36,6 +36,7 @@ class WorkspaceMemberUpdate(BaseModel):
 
 class WorkspaceMemberResponse(BaseModel):
     user_id: int
+    username: str | None = None
     role: RoleEnum
     created_at: datetime
     updated_at: datetime

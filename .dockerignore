@@ -8,4 +8,7 @@ __pycache__/
 .env
 tests/
 docs/
-*.md
+frontend/
+.mypy_cache/
+.pytest_cache/
+.ruff_cache/

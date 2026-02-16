@@ -54,6 +54,22 @@ async def get_workspace(
     )
 
 
+@router.get(
+    "/workspaces/{workspace_id}/members",
+    response_model=list[WorkspaceMemberResponse],
+)
+async def list_workspace_members(
+    workspace_id: int,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+) -> list[dict]:
+    return await workspace_service.list_workspace_members(
+        db,
+        workspace_id=workspace_id,
+        actor_user_id=current_user.id,
+    )
+
+
 @router.post(
     "/workspaces/{workspace_id}/members",
     response_model=WorkspaceMemberResponse,

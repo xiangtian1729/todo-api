@@ -74,6 +74,34 @@ async def get_workspace(db: AsyncSession, *, workspace_id: int, user_id: int) ->
     return _workspace_payload(workspace, membership.role)
 
 
+async def list_workspace_members(
+    db: AsyncSession,
+    *,
+    workspace_id: int,
+    actor_user_id: int,
+) -> list[dict]:
+    """List all members of a workspace with their usernames."""
+    await require_workspace_membership(db, workspace_id, actor_user_id)
+
+    result = await db.execute(
+        select(WorkspaceMembership, User.username)
+        .join(User, User.id == WorkspaceMembership.user_id)
+        .where(WorkspaceMembership.workspace_id == workspace_id)
+        .order_by(WorkspaceMembership.created_at.asc())
+    )
+    rows = result.all()
+    return [
+        {
+            "user_id": membership.user_id,
+            "username": username,
+            "role": membership.role,
+            "created_at": membership.created_at,
+            "updated_at": membership.updated_at,
+        }
+        for membership, username in rows
+    ]
+
+
 async def add_workspace_member(
     db: AsyncSession,
     *,
