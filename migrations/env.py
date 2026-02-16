@@ -16,7 +16,6 @@ if str(SRC_DIR) not in sys.path:
     sys.path.insert(0, str(SRC_DIR))
 
 from app.config import settings
-from app.models.base import Base
 from app.models import (  # noqa: F401
     audit_log,
     idempotency_key,
@@ -30,6 +29,7 @@ from app.models import (  # noqa: F401
     workspace,
     workspace_membership,
 )
+from app.models.base import Base
 
 config = context.config
 

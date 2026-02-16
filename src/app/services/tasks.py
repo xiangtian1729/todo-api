@@ -8,10 +8,22 @@ from app.exceptions import BadRequestError, ConflictError, ForbiddenError, NotFo
 from app.models.project import Project
 from app.models.task import Task
 from app.models.task_tag import TaskTag
-from app.schemas.task import SortOrder, TaskCreate, TaskResponse, TaskSortBy, TaskStatus, TaskStatusTransition, TaskUpdate
+from app.schemas.task import (
+    SortOrder,
+    TaskCreate,
+    TaskResponse,
+    TaskSortBy,
+    TaskStatus,
+    TaskStatusTransition,
+    TaskUpdate,
+)
 from app.services.audit import log_action
 from app.services.idempotency import build_request_hash, get_replay_response, save_response
-from app.services.permissions import ADMIN_ROLES, ensure_user_in_workspace, require_workspace_membership
+from app.services.permissions import (
+    ADMIN_ROLES,
+    ensure_user_in_workspace,
+    require_workspace_membership,
+)
 
 ALLOWED_TRANSITIONS: dict[TaskStatus, set[TaskStatus]] = {
     TaskStatus.todo: {TaskStatus.in_progress},
@@ -191,7 +203,11 @@ async def list_tasks(
     if due_at_from and due_at_to and due_at_from > due_at_to:
         raise BadRequestError("due_at_from cannot be greater than due_at_to")
 
-    filter_kwargs = dict(
+    base_query = select(Task).where(Task.workspace_id == workspace_id)
+    base_count = select(func.count(Task.id)).where(Task.workspace_id == workspace_id)
+
+    query = _apply_task_filters(
+        base_query,
         status_filter=status_filter,
         assignee_id=assignee_id,
         project_id=project_id,
@@ -199,12 +215,15 @@ async def list_tasks(
         due_at_from=due_at_from,
         due_at_to=due_at_to,
     )
-
-    base_query = select(Task).where(Task.workspace_id == workspace_id)
-    base_count = select(func.count(Task.id)).where(Task.workspace_id == workspace_id)
-
-    query = _apply_task_filters(base_query, **filter_kwargs)
-    count_query = _apply_task_filters(base_count, **filter_kwargs)
+    count_query = _apply_task_filters(
+        base_count,
+        status_filter=status_filter,
+        assignee_id=assignee_id,
+        project_id=project_id,
+        tag=tag,
+        due_at_from=due_at_from,
+        due_at_to=due_at_to,
+    )
 
     sort_column = SORT_COLUMNS[sort_by]
     if sort_order == SortOrder.asc:

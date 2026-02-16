@@ -19,7 +19,6 @@ from app.schemas.task import (
     TaskStatusTransition,
     TaskUpdate,
 )
-
 from app.schemas.user import Token, UserCreate, UserResponse
 from app.schemas.workspace import (
     RoleEnum,

@@ -45,9 +45,9 @@ async def create_project(
 
     try:
         await db.commit()
-    except IntegrityError:
+    except IntegrityError as err:
         await db.rollback()
-        raise ConflictError("Project name already exists in workspace")
+        raise ConflictError("Project name already exists in workspace") from err
 
     await db.refresh(project)
     return project
@@ -131,9 +131,9 @@ async def update_project(
 
     try:
         await db.commit()
-    except IntegrityError:
+    except IntegrityError as err:
         await db.rollback()
-        raise ConflictError("Project name already exists in workspace")
+        raise ConflictError("Project name already exists in workspace") from err
 
     await db.refresh(project)
     return project

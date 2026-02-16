@@ -131,7 +131,10 @@ def upgrade() -> None:
             server_default=sa.text("CURRENT_TIMESTAMP"),
             nullable=False,
         ),
-        sa.CheckConstraint("role IN ('owner', 'admin', 'member')", name="ck_workspace_membership_role"),
+        sa.CheckConstraint(
+            "role IN ('owner', 'admin', 'member')",
+            name="ck_workspace_membership_role",
+        ),
         sa.ForeignKeyConstraint(["user_id"], ["users.id"], ondelete="CASCADE"),
         sa.ForeignKeyConstraint(["workspace_id"], ["workspaces.id"], ondelete="CASCADE"),
         sa.PrimaryKeyConstraint("id"),
@@ -162,7 +165,10 @@ def upgrade() -> None:
             server_default=sa.text("CURRENT_TIMESTAMP"),
             nullable=False,
         ),
-        sa.CheckConstraint("status IN ('todo', 'in_progress', 'blocked', 'done')", name="ck_task_status"),
+        sa.CheckConstraint(
+            "status IN ('todo', 'in_progress', 'blocked', 'done')",
+            name="ck_task_status",
+        ),
         sa.ForeignKeyConstraint(["assignee_id"], ["users.id"]),
         sa.ForeignKeyConstraint(["creator_id"], ["users.id"]),
         sa.ForeignKeyConstraint(["project_id"], ["projects.id"], ondelete="CASCADE"),

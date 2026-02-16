@@ -6,9 +6,18 @@ from app.exceptions import BadRequestError, ConflictError, ForbiddenError, NotFo
 from app.models.user import User
 from app.models.workspace import Workspace
 from app.models.workspace_membership import WorkspaceMembership
-from app.schemas.workspace import RoleEnum, WorkspaceCreate, WorkspaceMemberCreate, WorkspaceMemberUpdate
+from app.schemas.workspace import (
+    RoleEnum,
+    WorkspaceCreate,
+    WorkspaceMemberCreate,
+    WorkspaceMemberUpdate,
+)
 from app.services.audit import log_action
-from app.services.permissions import count_role_members, require_workspace_membership, require_workspace_role
+from app.services.permissions import (
+    count_role_members,
+    require_workspace_membership,
+    require_workspace_role,
+)
 
 
 def _workspace_payload(workspace: Workspace, role: str) -> dict:
@@ -151,9 +160,9 @@ async def add_workspace_member(
 
     try:
         await db.commit()
-    except IntegrityError:
+    except IntegrityError as err:
         await db.rollback()
-        raise ConflictError("User already in workspace")
+        raise ConflictError("User already in workspace") from err
 
     await db.refresh(membership)
     return membership

@@ -1,6 +1,7 @@
 from httpx import AsyncClient
 
-from tests.helpers import create_workspace, register_and_login_with_id as _register_login
+from tests.helpers import create_workspace
+from tests.helpers import register_and_login_with_id as _register_login
 
 
 class TestProjectPermissions:

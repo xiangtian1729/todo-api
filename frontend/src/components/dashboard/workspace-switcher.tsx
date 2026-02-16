@@ -47,7 +47,7 @@ export function WorkspaceSwitcher() {
       setOpen(false);
       setNewWorkspaceName('');
       toast.success('Workspace created');
-    } catch (error) {
+    } catch {
       toast.error('Failed to create workspace');
     }
   };

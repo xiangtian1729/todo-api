@@ -43,7 +43,11 @@ async def register_and_login_with_id(
     return user_id, {"Authorization": f"Bearer {token}"}
 
 
-async def create_workspace(client: AsyncClient, headers: dict[str, str], name: str = "workspace") -> int:
+async def create_workspace(
+    client: AsyncClient,
+    headers: dict[str, str],
+    name: str = "workspace",
+) -> int:
     resp = await client.post("/workspaces", json={"name": name}, headers=headers)
     assert resp.status_code == 201
     return resp.json()["id"]

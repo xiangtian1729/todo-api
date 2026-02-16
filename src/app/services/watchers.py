@@ -45,9 +45,9 @@ async def add_watcher(
 
     try:
         await db.flush()
-    except IntegrityError:
+    except IntegrityError as err:
         await db.rollback()
-        raise ConflictError("Watcher already exists for this task")
+        raise ConflictError("Watcher already exists for this task") from err
 
     await log_action(
         db,

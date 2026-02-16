@@ -150,6 +150,7 @@ pytest -q
 | `DATABASE_URL` | 数据库连接串 | `sqlite+aiosqlite:///./todo.db` |
 | `SECRET_KEY` | JWT 密钥 | — |
 | `ACCESS_TOKEN_EXPIRE_MINUTES` | Token 过期时间 | `30` |
+| `CORS_ALLOWED_ORIGINS` | Allowed origins (comma-separated) | `http://localhost:3000` |
 
 ### 前端 (.env.local)
 

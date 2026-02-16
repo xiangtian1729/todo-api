@@ -3,7 +3,10 @@ from httpx import AsyncClient
 from tests.helpers import create_workspace
 
 
-async def _register_and_login_with_id(client: AsyncClient, username: str) -> tuple[int, dict[str, str]]:
+async def _register_and_login_with_id(
+    client: AsyncClient,
+    username: str,
+) -> tuple[int, dict[str, str]]:
     password = "secret123"
     register_resp = await client.post(
         "/auth/register",

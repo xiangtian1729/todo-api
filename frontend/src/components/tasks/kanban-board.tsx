@@ -87,7 +87,7 @@ export function KanbanBoard({ workspaceId, projectId }: { workspaceId: number; p
     useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
   );
 
-  const tasks = data?.items || [];
+  const tasks = useMemo(() => data?.items ?? [], [data?.items]);
 
   // Group tasks by status
   const grouped = useMemo(() => {

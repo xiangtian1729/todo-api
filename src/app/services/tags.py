@@ -44,9 +44,9 @@ async def add_tag(
 
     try:
         await db.flush()
-    except IntegrityError:
+    except IntegrityError as err:
         await db.rollback()
-        raise ConflictError("Tag already exists for this task")
+        raise ConflictError("Tag already exists for this task") from err
 
     await log_action(
         db,

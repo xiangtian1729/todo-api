@@ -13,16 +13,17 @@ services:
     ports:
       - "8000:8000"
     environment:
-      - APP_NAME=Todo API
-      - APP_VERSION=0.1.0
-      - DEBUG=false
-      - DATABASE_URL=sqlite+aiosqlite:///./data/todo.db
-      - SECRET_KEY=change-this-in-production
-      - ACCESS_TOKEN_EXPIRE_MINUTES=30
+      - APP_NAME=${APP_NAME:-Todo API}
+      - APP_VERSION=${APP_VERSION:-0.1.0}
+      - DEBUG=${DEBUG:-false}
+      - DATABASE_URL=${DATABASE_URL:-sqlite+aiosqlite:///./data/todo.db}
+      - SECRET_KEY=${SECRET_KEY:-change-this-in-production}
+      - ACCESS_TOKEN_EXPIRE_MINUTES=${ACCESS_TOKEN_EXPIRE_MINUTES:-30}
+      - CORS_ALLOWED_ORIGINS=${CORS_ALLOWED_ORIGINS:-http://localhost:3000}
     volumes:
       - todo-data:/app/data
     healthcheck:
-      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/docs')"]
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"]
       interval: 10s
       timeout: 5s
       retries: 3
