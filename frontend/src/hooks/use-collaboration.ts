@@ -53,6 +53,17 @@ export function useDeleteComment() {
 }
 
 // ─── Tags ─────────────────────────────────────────────
+export function useTaskTags(workspaceId: number, taskId: number) {
+  return useQuery({
+    queryKey: ['task-tags', workspaceId, taskId],
+    queryFn: async () => {
+      const { data } = await api.get<TaskTag[]>(`/workspaces/${workspaceId}/tasks/${taskId}/tags`);
+      return data;
+    },
+    enabled: !!workspaceId && !!taskId,
+  });
+}
+
 export function useAddTag() {
   const queryClient = useQueryClient();
   return useMutation({
@@ -61,8 +72,8 @@ export function useAddTag() {
       return data;
     },
     onSuccess: (_, v) => {
+      queryClient.invalidateQueries({ queryKey: ['task-tags', v.workspaceId, v.taskId] });
       queryClient.invalidateQueries({ queryKey: ['tasks', v.workspaceId] });
-      queryClient.invalidateQueries({ queryKey: ['task', v.workspaceId, v.taskId] });
     },
   });
 }
@@ -74,13 +85,24 @@ export function useDeleteTag() {
       await api.delete(`/workspaces/${workspaceId}/tasks/${taskId}/tags/${tag}`);
     },
     onSuccess: (_, v) => {
+      queryClient.invalidateQueries({ queryKey: ['task-tags', v.workspaceId, v.taskId] });
       queryClient.invalidateQueries({ queryKey: ['tasks', v.workspaceId] });
-      queryClient.invalidateQueries({ queryKey: ['task', v.workspaceId, v.taskId] });
     },
   });
 }
 
 // ─── Watchers ─────────────────────────────────────────
+export function useTaskWatchers(workspaceId: number, taskId: number) {
+  return useQuery({
+    queryKey: ['task-watchers', workspaceId, taskId],
+    queryFn: async () => {
+      const { data } = await api.get<TaskWatcher[]>(`/workspaces/${workspaceId}/tasks/${taskId}/watchers`);
+      return data;
+    },
+    enabled: !!workspaceId && !!taskId,
+  });
+}
+
 export function useAddWatcher() {
   const queryClient = useQueryClient();
   return useMutation({
@@ -89,7 +111,7 @@ export function useAddWatcher() {
       return data;
     },
     onSuccess: (_, v) => {
-      queryClient.invalidateQueries({ queryKey: ['task', v.workspaceId, v.taskId] });
+      queryClient.invalidateQueries({ queryKey: ['task-watchers', v.workspaceId, v.taskId] });
     },
   });
 }
@@ -101,7 +123,7 @@ export function useDeleteWatcher() {
       await api.delete(`/workspaces/${workspaceId}/tasks/${taskId}/watchers/${userId}`);
     },
     onSuccess: (_, v) => {
-      queryClient.invalidateQueries({ queryKey: ['task', v.workspaceId, v.taskId] });
+      queryClient.invalidateQueries({ queryKey: ['task-watchers', v.workspaceId, v.taskId] });
     },
   });
 }

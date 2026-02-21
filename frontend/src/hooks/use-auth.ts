@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import api from '@/lib/axios';
+import { setToken } from '@/lib/token-store';
 import type { User } from '@/types';
 
 interface AuthState {
@@ -20,9 +21,11 @@ export const useAuth = create<AuthState>()(
       token: null,
       isAuthenticated: false,
       login: (token: string) => {
+        setToken(token);
         set({ token, isAuthenticated: true });
       },
       logout: () => {
+        setToken(null);
         set({ user: null, token: null, isAuthenticated: false });
         if (typeof window !== 'undefined') {
           window.location.href = '/login';
@@ -45,6 +48,12 @@ export const useAuth = create<AuthState>()(
         isAuthenticated: state.isAuthenticated,
         user: state.user,
       }),
+      onRehydrateStorage: () => (state) => {
+        // Keep the in-memory token store in sync after localStorage rehydration
+        if (state?.token) {
+          setToken(state.token);
+        }
+      },
     }
   )
 );

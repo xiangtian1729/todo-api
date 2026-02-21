@@ -28,6 +28,19 @@ async def _require_task(
     return task
 
 
+async def list_watchers(
+    db: AsyncSession,
+    *,
+    workspace_id: int,
+    task_id: int,
+    actor_user_id: int,
+) -> list[TaskWatcher]:
+    await require_workspace_membership(db, workspace_id, actor_user_id)
+    await _require_task(db, workspace_id=workspace_id, task_id=task_id)
+    result = await db.execute(select(TaskWatcher).where(TaskWatcher.task_id == task_id))
+    return list(result.scalars().all())
+
+
 async def add_watcher(
     db: AsyncSession,
     *,

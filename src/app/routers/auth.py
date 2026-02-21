@@ -81,3 +81,24 @@ async def login(
 )
 async def read_users_me(current_user: User = Depends(get_current_user)):
     return current_user
+
+
+@router.get(
+    "/users/lookup",
+    response_model=UserResponse,
+    summary="按用户名查找用户",
+)
+async def lookup_user_by_username(
+    username: str,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+) -> User:
+    query = select(User).where(User.username == username, User.is_active.is_(True))
+    result = await db.execute(query)
+    user = result.scalar_one_or_none()
+    if user is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="User not found",
+        )
+    return user

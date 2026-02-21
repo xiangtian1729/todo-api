@@ -104,6 +104,25 @@ async def delete_comment(
     )
 
 
+@router.get(
+    "/workspaces/{workspace_id}/tasks/{task_id}/tags",
+    response_model=list[TagResponse],
+)
+async def list_tags(
+    workspace_id: int,
+    task_id: int,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+) -> list[TagResponse]:
+    tags = await tag_service.list_tags(
+        db,
+        workspace_id=workspace_id,
+        task_id=task_id,
+        actor_user_id=current_user.id,
+    )
+    return [TagResponse.model_validate(t) for t in tags]
+
+
 @router.post(
     "/workspaces/{workspace_id}/tasks/{task_id}/tags",
     response_model=TagResponse,
@@ -144,6 +163,25 @@ async def delete_tag(
         tag_value=tag,
         actor_user_id=current_user.id,
     )
+
+
+@router.get(
+    "/workspaces/{workspace_id}/tasks/{task_id}/watchers",
+    response_model=list[WatcherResponse],
+)
+async def list_watchers(
+    workspace_id: int,
+    task_id: int,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+) -> list[WatcherResponse]:
+    watchers = await watcher_service.list_watchers(
+        db,
+        workspace_id=workspace_id,
+        task_id=task_id,
+        actor_user_id=current_user.id,
+    )
+    return [WatcherResponse.model_validate(w) for w in watchers]
 
 
 @router.post(

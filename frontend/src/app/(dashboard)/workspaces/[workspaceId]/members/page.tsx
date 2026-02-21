@@ -1,7 +1,7 @@
 'use client';
 
 import { useParams } from 'next/navigation';
-import { useWorkspaceMembers, useAddMember, useRemoveMember, useUpdateMemberRole } from '@/hooks/use-workspaces';
+import { useWorkspaceMembers, useAddMember, useRemoveMember, useUpdateMemberRole, useLookupUserByUsername } from '@/hooks/use-workspaces';
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -15,9 +15,10 @@ import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import { UserPlus, Trash2, Users, Loader2, Shield, Crown, User } from 'lucide-react';
+import { UserPlus, Trash2, Users, Loader2, Shield, Crown, User, Search } from 'lucide-react';
 import { toast } from 'sonner';
 import { getApiErrorMessage } from '@/lib/axios';
+import type { User as UserType } from '@/types';
 
 const ROLE_CONFIG = {
   owner: { label: 'Owner', icon: Crown, variant: 'default' as const },
@@ -32,22 +33,35 @@ export default function MembersPage() {
   const addMember = useAddMember();
   const removeMember = useRemoveMember();
   const updateRole = useUpdateMemberRole();
+  const lookupUser = useLookupUserByUsername();
 
   const [inviteOpen, setInviteOpen] = useState(false);
-  const [userId, setUserId] = useState('');
+  const [usernameInput, setUsernameInput] = useState('');
+  const [foundUser, setFoundUser] = useState<UserType | null>(null);
   const [role, setRole] = useState('member');
   const [deleteTarget, setDeleteTarget] = useState<{ userId: number; username: string } | null>(null);
 
   if (isNaN(workspaceId)) return <div>Invalid workspace</div>;
 
-  const handleInvite = async () => {
-    const uid = parseInt(userId);
-    if (isNaN(uid)) { toast.error('Invalid user ID'); return; }
+  const handleLookup = async () => {
+    if (!usernameInput.trim()) return;
+    setFoundUser(null);
     try {
-      await addMember.mutateAsync({ workspaceId, userId: uid, role });
-      toast.success('Member added');
+      const user = await lookupUser.mutateAsync(usernameInput.trim());
+      setFoundUser(user);
+    } catch {
+      toast.error('User not found');
+    }
+  };
+
+  const handleInvite = async () => {
+    if (!foundUser) return;
+    try {
+      await addMember.mutateAsync({ workspaceId, userId: foundUser.id, role });
+      toast.success(`${foundUser.username} added to workspace`);
       setInviteOpen(false);
-      setUserId('');
+      setUsernameInput('');
+      setFoundUser(null);
       setRole('member');
     } catch (error) {
       toast.error(getApiErrorMessage(error, 'Failed to add member'));
@@ -74,6 +88,12 @@ export default function MembersPage() {
     }
   };
 
+  const resetInviteDialog = () => {
+    setUsernameInput('');
+    setFoundUser(null);
+    setRole('member');
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -86,7 +106,7 @@ export default function MembersPage() {
           </p>
         </div>
 
-        <Dialog open={inviteOpen} onOpenChange={setInviteOpen}>
+        <Dialog open={inviteOpen} onOpenChange={(open) => { setInviteOpen(open); if (!open) resetInviteDialog(); }}>
           <DialogTrigger asChild>
             <Button size="sm">
               <UserPlus className="h-4 w-4 mr-1" /> Invite Member
@@ -96,13 +116,32 @@ export default function MembersPage() {
             <DialogHeader><DialogTitle>Invite Member</DialogTitle></DialogHeader>
             <div className="grid gap-4 py-4">
               <div className="grid gap-2">
-                <label className="text-sm font-medium">User ID</label>
-                <Input
-                  value={userId}
-                  onChange={(e) => setUserId(e.target.value)}
-                  placeholder="Enter user ID"
-                  type="number"
-                />
+                <label className="text-sm font-medium">Username</label>
+                <div className="flex gap-2">
+                  <Input
+                    value={usernameInput}
+                    onChange={(e) => { setUsernameInput(e.target.value); setFoundUser(null); }}
+                    onKeyDown={(e) => e.key === 'Enter' && handleLookup()}
+                    placeholder="Enter username"
+                    autoComplete="off"
+                  />
+                  <Button
+                    variant="outline"
+                    onClick={handleLookup}
+                    disabled={lookupUser.isPending || !usernameInput.trim()}
+                  >
+                    {lookupUser.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}
+                  </Button>
+                </div>
+                {foundUser && (
+                  <div className="flex items-center gap-2 p-2 rounded-md bg-muted/50 text-sm">
+                    <div className="h-7 w-7 rounded-full bg-primary/10 flex items-center justify-center text-xs font-semibold text-primary">
+                      {foundUser.username[0].toUpperCase()}
+                    </div>
+                    <span className="font-medium">{foundUser.username}</span>
+                    <span className="text-muted-foreground text-xs">found</span>
+                  </div>
+                )}
               </div>
               <div className="grid gap-2">
                 <label className="text-sm font-medium">Role</label>
@@ -116,7 +155,7 @@ export default function MembersPage() {
               </div>
             </div>
             <DialogFooter>
-              <Button onClick={handleInvite} disabled={addMember.isPending}>
+              <Button onClick={handleInvite} disabled={!foundUser || addMember.isPending}>
                 {addMember.isPending ? 'Adding...' : 'Add Member'}
               </Button>
             </DialogFooter>

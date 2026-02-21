@@ -2,12 +2,14 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import api from '@/lib/axios';
 import type { Task, PageResponse } from '@/types';
 
+const DEFAULT_LIMIT = 100;
+
 export function useTasks(workspaceId: number, projectId?: number) {
   return useQuery({
     queryKey: ['tasks', workspaceId, projectId],
     queryFn: async () => {
       const params = new URLSearchParams();
-      params.append('limit', '100');
+      params.append('limit', String(DEFAULT_LIMIT));
       if (projectId) params.append('project_id', projectId.toString());
 
       const { data } = await api.get<PageResponse<Task>>(`/workspaces/${workspaceId}/tasks?${params.toString()}`);
@@ -26,19 +28,23 @@ export function useFilteredTasks(
     tag?: string;
     sort_by?: string;
     sort_order?: string;
+    due_at_from?: string;
+    due_at_to?: string;
   }
 ) {
   return useQuery({
     queryKey: ['tasks', workspaceId, filters],
     queryFn: async () => {
       const params = new URLSearchParams();
-      params.append('limit', '100');
+      params.append('limit', String(DEFAULT_LIMIT));
       if (filters.project_id) params.append('project_id', filters.project_id.toString());
       if (filters.status) params.append('status', filters.status);
       if (filters.assignee_id) params.append('assignee_id', filters.assignee_id.toString());
       if (filters.tag) params.append('tag', filters.tag);
       if (filters.sort_by) params.append('sort_by', filters.sort_by);
       if (filters.sort_order) params.append('sort_order', filters.sort_order);
+      if (filters.due_at_from) params.append('due_at_from', filters.due_at_from);
+      if (filters.due_at_to) params.append('due_at_to', filters.due_at_to);
 
       const { data } = await api.get<PageResponse<Task>>(`/workspaces/${workspaceId}/tasks?${params.toString()}`);
       return data;

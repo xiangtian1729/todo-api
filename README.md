@@ -33,6 +33,14 @@ npm run dev
 - 后端 API 文档: http://localhost:8000/docs
 - 前端: http://localhost:3000
 
+## 近期更新（基于当前仓库改动）
+
+- 新增用户查找接口：`GET /auth/users/lookup?username=...`
+- 新增任务标签列表接口：`GET /workspaces/{wid}/tasks/{tid}/tags`
+- 新增任务关注者列表接口：`GET /workspaces/{wid}/tasks/{tid}/watchers`
+- 前端任务详情页增强：支持评论编辑、标签管理、关注/取消关注、任务指派
+- 前端鉴权请求改为内存 token store（`frontend/src/lib/token-store.ts`），减少对 `localStorage` 结构耦合
+
 ### 方式二：Docker Compose（一键全栈）
 
 ```bash
@@ -60,12 +68,13 @@ todo-api/
 └── .github/workflows/ci.yml  # CI：lint + type check + test + frontend lint/test/build
 ```
 
-## API 端点（28 个）
+## API 端点（31 个）
 
 ### Auth
 
 - `POST /auth/register` — 注册
 - `POST /auth/login` — 登录，返回 JWT Token
+- `GET /auth/users/lookup?username=...` — 按用户名查找用户（需登录）
 
 使用 `Authorization: Bearer <access_token>` 访问受保护端点。
 
@@ -103,14 +112,16 @@ todo-api/
 
 **筛选参数**：`status`, `assignee_id`, `project_id`, `tag`, `due_at_from`, `due_at_to`, `sort_by`, `sort_order`
 
-### Collaboration（8）
+### Collaboration（10）
 
 | 方法 | 路径 | 说明 |
 |------|------|------|
 | POST / GET | `.../tasks/{tid}/comments` | 评论 CRUD |
 | PATCH / DELETE | `.../comments/{cid}` | |
+| GET | `.../tasks/{tid}/tags` | 列出标签 |
 | POST | `.../tasks/{tid}/tags` | 添加标签 |
 | DELETE | `.../tasks/{tid}/tags/{tag}` | 删除标签 |
+| GET | `.../tasks/{tid}/watchers` | 列出关注者 |
 | POST | `.../tasks/{tid}/watchers` | 添加关注者 |
 | DELETE | `.../tasks/{tid}/watchers/{uid}` | 删除关注者 |
 
@@ -134,10 +145,18 @@ alembic downgrade -1     # 回滚一步
 ## 测试
 
 ```bash
+# 后端
 pytest -q
+
+# 前端单元测试
+cd frontend
+npm test
+
+# 前端 E2E
+npm run test:e2e
 ```
 
-覆盖：认证、工作空间、项目、任务 CRUD、权限控制、审计日志、迁移检查。
+覆盖：认证、工作空间、项目、任务 CRUD、权限控制、审计日志、迁移检查，以及前端登录/看板/任务详情权限场景。
 
 ## 环境变量
 

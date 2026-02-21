@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import api from '@/lib/axios';
-import type { Workspace, WorkspaceMember } from '@/types';
+import type { User, Workspace, WorkspaceMember } from '@/types';
 
 export function useWorkspaces() {
   return useQuery({
@@ -52,6 +52,16 @@ export function useUsernameLookup(workspaceId: number) {
     lookup,
     resolve: (userId: number) => lookup[userId] || `User #${userId}`,
   };
+}
+
+/** Look up a user by exact username via the API */
+export function useLookupUserByUsername() {
+  return useMutation({
+    mutationFn: async (username: string) => {
+      const { data } = await api.get<User>('/auth/users/lookup', { params: { username } });
+      return data;
+    },
+  });
 }
 
 export function useAddMember() {

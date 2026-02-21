@@ -1,4 +1,5 @@
 import axios, { AxiosError } from 'axios';
+import { getToken, setToken } from './token-store';
 
 const api = axios.create({
   baseURL: process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000',
@@ -8,19 +9,9 @@ const api = axios.create({
 });
 
 api.interceptors.request.use((config) => {
-  if (typeof window !== 'undefined') {
-    try {
-      const raw = localStorage.getItem('auth-storage');
-      if (raw) {
-        const parsed = JSON.parse(raw);
-        const token = parsed?.state?.token;
-        if (token) {
-          config.headers.Authorization = `Bearer ${token}`;
-        }
-      }
-    } catch {
-      // Ignore parse errors
-    }
+  const token = getToken();
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`;
   }
   return config;
 });
@@ -29,7 +20,7 @@ api.interceptors.response.use(
   (response) => response,
   (error) => {
     if (error.response?.status === 401 && typeof window !== 'undefined') {
-      localStorage.removeItem('auth-storage');
+      setToken(null);
       if (!window.location.pathname.startsWith('/login')) {
         window.location.href = '/login';
       }
